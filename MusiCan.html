@@ -8,7 +8,6 @@
         :root { 
             --neon: #00ffff; 
             --crt-opacity: 0; 
-            /* 💡 靈魂補回：全域顏色變數過渡 */
             transition: --neon 0.8s ease; 
         }
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -17,7 +16,6 @@
             transition: background 0.5s ease;
         }
 
-        /* --- Logo Glitch --- */
         .logo-link { text-decoration: none; color: inherit; cursor: pointer; display: flex; align-items: center; gap: 15px; outline: none; }
         .logo-img { height: 50px; width: auto; filter: drop-shadow(0 0 12px var(--neon)); transition: filter 0.8s ease; }
         .logo { font-size:42px; font-weight:bold; letter-spacing:4px; text-shadow:0 0 20px var(--neon); position: relative; transition: color 0.8s ease, text-shadow 0.8s ease; color: #fff; }
@@ -27,7 +25,6 @@
         @keyframes glitch-anim { 0% { clip: rect(26px, 9999px, 5px, 0); } 100% { clip: rect(20px, 9999px, 95px, 0); } }
         @keyframes glitch-anim2 { 0% { clip: rect(15px, 9999px, 85px, 0); } 100% { clip: rect(85px, 9999px, 15px, 0); } }
         
-        /* --- Nav & Header --- */
         header { 
             background:rgba(10,10,31,0.95); border-bottom:3px solid var(--neon); padding:15px 40px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 0 30px rgba(0,255,255,0.4); z-index: 1000; 
             transition: all 0.8s ease;
@@ -87,7 +84,7 @@
     </main>
 
     <script>
-        const PORTAL_URL = "file:///C:/Users/herob/LS/MusiCan/AL.html";
+        const PORTAL.HTML = "AL.html";
 		
 		(function() {
 			const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -120,7 +117,6 @@
             if(targetBtn) targetBtn.classList.add('active');
         }
 
-        // 核心動畫控制邏輯
         function runNavAnimation(settings) {
             const btnV = document.getElementById('nav-v');
             const btnL = document.getElementById('nav-l');
@@ -154,17 +150,16 @@
             }
         }
 
-        // 💡 核心偵測功能：當偵測到拒絕連線網址，自動開啟新分頁
         function handlePortalOpening() {
             switchTab('tab-portal');
-            // 偵測網址是否為 hanime1.me 或其他會拒絕訪問的站點
-            if (PORTAL_URL.includes("hanime1.me")) {
+            
+            if (PORTAL_URL.includes("Never Gonna Give You Up")) {
                 setTimeout(() => {
                     const check = window.open(PORTAL_URL, "_blank");
                     if (!check) alert("請允許彈出視窗以開啟特殊入口！");
                 }, 1000);
             }
-			if (PORTAL_URL.includes("www.youtube.com")) {
+			if (PORTAL_URL.includes("Let You Down")) {
 				setTimeout(() => {
 					const check = window.open(PORTAL_URL, "_blank");
 					if (!check) alert("請允許彈出視窗以開啟特殊入口！");
