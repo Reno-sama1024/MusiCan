@@ -50,6 +50,19 @@
     </style>
 </head>
 <body>
+	<div id="access-denied" style="display:none; position:fixed; top:0; left:0; width:100%;
+								   height:100%; background:#000; color:#f00; z-index:9999;
+								   display:flex; flex-direction:column; align-items:center;
+								   justify-content:center; font-family:monospace; text-align:center;">
+		<h1 style="font-size:3rem; margin-bottom:20px;">[ ACCESS DENIED ]</h1>
+		<p style="font-size:1.2rem; letter-spacing:2px;">偵測到非法移動端設備。權限不足。</p>
+		<p style="color:#555; margin-top:10px;">請使用具備 WASD 標準輸入協定之運算終端開啟。</p>
+	</div>
+	
+	<div id="auth-approved" style="position:fixed; bottom:20px; left:20px; color:#0f0; font-family:monospace; font-size:12px; z-index:1000; display:none; text-shadow:0 0 5px #0f0;">
+		● SYSTEM_AUTH: APPROVED (PC_MODE)
+	</div>
+	
     <div id="crt-overlay"></div>
     <header>
         <a href="javascript:location.reload();" class="logo-link">
@@ -75,6 +88,28 @@
 
     <script>
         const PORTAL_URL = "file:///C:/Users/herob/LS/MusiCan/AL.html";
+		
+		(function() {
+			const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+			window.addEventListener('DOMContentLoaded', () => {
+				const deniedLayer = document.getElementById('access-denied');
+				const approvedLight = document.getElementById('auth-approved');
+				
+				if (isMobile) {
+					deniedLayer.style.display = 'flex';
+					document.body.style.overflow = 'hidden';
+					
+					setTimeout(() => {
+						alert("設備安全層級過低，強制中斷連接。");
+						window.close();
+					}, 3000);
+				} else {
+					deniedLayer.style.display = 'none';
+					approvedLight.style.display = 'block';
+					setTimeout(() => { approvedLight.style.opacity = '0'; approvedLight.style.transition = '2s'; }, 5000);
+				}
+			});
+		})();
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
