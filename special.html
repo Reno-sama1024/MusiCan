@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>CM - 模擬宇宙: V5.1 輪迴修正</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft JhengHei", sans-serif; }
+        canvas { display: block; position: absolute; z-index: 1; }
+        
+        /* 🏆 核心修正：全螢幕按鈕 z-index 提到宇宙最高 */
+        #fs-btn {
+            position: absolute; top: 20px; left: 20px; z-index: 5000;
+            padding: 10px 20px; background: rgba(0, 255, 255, 0.2);
+            color: #00ffff; border: 1px solid #00ffff; border-radius: 4px;
+            cursor: pointer; backdrop-filter: blur(5px);
+        }
+        #fs-btn:hover { background: rgba(0, 255, 255, 0.5); }
+
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.4); font-size: 20px; pointer-events: none; z-index: 10; }
+        #ui { position: absolute; bottom: 30px; left: 30px; color: #00ffff; text-shadow: 0 0 10px #00ffff; font-size: 12px; letter-spacing: 2px; pointer-events: none; z-index: 10; }
+
+        /* 🏆 遮罩層：z-index 低於按鈕，但高於遊戲內容 */
+        #instructions {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,5,0.85); z-index: 3000; cursor: pointer;
+        }
+        #box {
+            padding: 40px 60px; border: 1px solid #00ffff; border-radius: 10px;
+            text-align: center; background: rgba(0,15,30,0.95); color: white;
+            box-shadow: 0 0 30px rgba(0,255,255,0.3);
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <button id="fs-btn">切換全螢幕</button>
+    <div id="crosshair">+</div>
+    
+    <div id="ui">
+        CORE: CYCLE_REBORN_V5.1<br>
+        Z-INDEX: ALIGNED<br>
+        STATUS: <span id="mode">WALKING</span>
+    </div>
+
+    <div id="instructions">
+        <div id="box">
+            <h1 style="color:#00ffff; font-weight: 200; letter-spacing: 10px;">模擬宇宙</h1>
+            <p>點擊屏幕 同步意識</p>
+            <div style="font-size:14px; color:#999; text-align: left; margin-top: 25px; line-height: 2;">
+                • <b>W A S D</b> : 移動 (依準心方向)<br>
+                • <b>雙擊 SPACE</b> : 切換 飛行/步行<br>
+                • <b>SHIFT</b> : 引擎超載加速 (3.5x)<br>
+                • <b>ESC</b> : 釋放鼠標並開啟此選單
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 50000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        document.body.appendChild(renderer.domElement);
+
+        const texLoader = new THREE.TextureLoader();
+        texLoader.setCrossOrigin('anonymous');
+
+        const cubeLoader = new THREE.CubeTextureLoader();
+        scene.background = cubeLoader.load([
+            'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_px.jpg', 'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_nx.jpg',
+            'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_py.jpg', 'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_ny.jpg',
+            'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_pz.jpg', 'https://threejs.org/examples/textures/cube/MilkyWay/dark-s_nz.jpg'
+        ]);
+
+        const sunLight = new THREE.PointLight(0xffffff, 5, 40000);
+        sunLight.castShadow = true;
+        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x222222));
+
+        // 太陽與光暈
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(120, 64, 64), new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 2.5 }));
+        scene.add(sun);
+        const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(145, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending }));
+        scene.add(sunGlow);
+
+        const planets = [
+            { name: "水星", size: 12, dist: 500, color: 0x888888, spd: 0.005, rot: 0.005 },
+            { name: "金星", size: 26, dist: 800, color: 0xe3bb76, spd: 0.003, rot: 0.002 },
+            { name: "地球", size: 30, dist: 1200, tex: 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg', spd: 0.002, rot: 0.01, target: true, hasMoon: true },
+            { name: "火星", size: 18, dist: 1600, color: 0xff4411, spd: 0.0015, rot: 0.008 },
+            { name: "木星", size: 100, dist: 2500, color: 0xd39c7e, spd: 0.0008, rot: 0.03 },
+            { name: "土星", size: 85, dist: 3500, color: 0xc5ab6e, spd: 0.0005, rot: 0.02, ring: true },
+            { name: "天王星", size: 55, dist: 4500, color: 0xb5e1e9, spd: 0.0003, rot: 0.02 },
+            { name: "海王星", size: 55, dist: 5500, color: 0x3f5efb, spd: 0.0002, rot: 0.02 }
+        ];
+
+        const pMeshes = [];
+        planets.forEach(p => {
+            const group = new THREE.Group();
+            const mat = p.tex ? new THREE.MeshStandardMaterial({ map: texLoader.load(p.tex), roughness: 0.7 }) : new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.8 });
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.size, 64, 64), mat);
+            mesh.castShadow = true; mesh.receiveShadow = true;
+            group.add(mesh);
+            if (p.hasMoon) {
+                const moonGroup = new THREE.Group();
+                const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(6, 32, 32), new THREE.MeshStandardMaterial({ map: texLoader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg') }));
+                moonMesh.position.set(60, 0, 0);
+                moonGroup.add(moonMesh); group.add(moonGroup); p.moonObj = moonGroup;
+            }
+            if (p.ring) {
+                const rMesh = new THREE.Mesh(new THREE.RingGeometry(p.size+20, p.size+100, 64), new THREE.MeshBasicMaterial({ map: texLoader.load('https://threejs.org/examples/textures/planets/saturn_ring_alpha.png'), side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+                rMesh.rotation.x = Math.PI/2.1; group.add(rMesh);
+            }
+            scene.add(group);
+            pMeshes.push({ group, mesh, data: p, angle: Math.random()*6 });
+        });
+
+        let keys = {}, isFlying = false, velY = 0, yaw = 0, pitch = 0, canToggle = true;
+        camera.position.set(0, 12, 2000);
+
+        // 🏆 修正 ESC 彈出邏輯
+        const inst = document.getElementById('instructions');
+        inst.onclick = () => { document.body.requestPointerLock(); };
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === document.body) {
+                inst.style.display = 'none'; // 進入遊戲，隱藏遮罩
+            } else {
+                inst.style.display = 'flex'; // 彈出 ESC 或失去焦點，顯示遮罩
+            }
+        });
+
+        document.getElementById('fs-btn').onclick = (e) => {
+            e.stopPropagation();
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.code === 'Space' && canToggle) {
+                isFlying = !isFlying;
+                document.getElementById('mode').innerText = isFlying ? "FLYING" : "WALKING";
+                canToggle = false; velY = 0;
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key.toLowerCase()] = false;
+            if (e.code === 'Space') canToggle = true;
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (document.pointerLockElement) {
+                yaw -= e.movementX * 0.0012; pitch -= e.movementY * 0.0012;
+                pitch = Math.max(-1.5, Math.min(1.5, pitch));
+                camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (document.pointerLockElement) {
+                const move = new THREE.Vector3();
+                if (keys['w']) move.z -= 1; if (keys['s']) move.z += 1;
+                if (keys['a']) move.x -= 1; if (keys['d']) move.x += 1;
+                move.normalize().applyQuaternion(camera.quaternion);
+                const speed = keys['shift'] ? 4.5 : 1.5;
+                if (!isFlying) move.y = 0;
+                camera.position.addScaledVector(move, speed);
+                if (!isFlying) {
+                    velY -= 0.6; camera.position.y += velY * 0.1;
+                    if (camera.position.y < 12) { camera.position.y = 12; velY = 0; }
+                }
+                pMeshes.forEach(p => {
+                    if (p.data.target && camera.position.distanceTo(p.group.position) < p.data.size + 15) {
+                        document.exitPointerLock(); window.location.href = "EarthOnline.html";
+                    }
+                });
+            }
+            sunGlow.scale.setScalar(1 + Math.sin(Date.now() * 0.002) * 0.03);
+            pMeshes.forEach(p => {
+                p.angle += p.data.spd * 0.04;
+                p.group.position.x = Math.cos(p.angle) * p.data.dist;
+                p.group.position.z = Math.sin(p.angle) * p.data.dist;
+                p.mesh.rotation.y += p.data.rot;
+                if (p.data.moonObj) p.data.moonObj.rotation.y += 0.01;
+            });
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    </script>
+</body>
+</html>

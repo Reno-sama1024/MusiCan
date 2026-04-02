@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音能 MusiCan</title>
+    <style>
+        :root { 
+            --neon: #00ffff; 
+            --crt-opacity: 0; 
+            /* 💡 靈魂補回：全域顏色變數過渡 */
+            transition: --neon 0.8s ease; 
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { 
+            font-family:'Microsoft JhengHei',sans-serif; background:#0a0a1f; color:#fff; height:100vh; overflow:hidden; display:flex; flex-direction:column; 
+            transition: background 0.5s ease;
+        }
+
+        /* --- Logo Glitch --- */
+        .logo-link { text-decoration: none; color: inherit; cursor: pointer; display: flex; align-items: center; gap: 15px; outline: none; }
+        .logo-img { height: 50px; width: auto; filter: drop-shadow(0 0 12px var(--neon)); transition: filter 0.8s ease; }
+        .logo { font-size:42px; font-weight:bold; letter-spacing:4px; text-shadow:0 0 20px var(--neon); position: relative; transition: color 0.8s ease, text-shadow 0.8s ease; color: #fff; }
+        .logo::before, .logo::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a1f; }
+        .logo::before { left: 2px; text-shadow: -2px 0 #ff00ff; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse; }
+        .logo::after { left: -2px; text-shadow: -2px 0 #00ffff; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim2 5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim { 0% { clip: rect(26px, 9999px, 5px, 0); } 100% { clip: rect(20px, 9999px, 95px, 0); } }
+        @keyframes glitch-anim2 { 0% { clip: rect(15px, 9999px, 85px, 0); } 100% { clip: rect(85px, 9999px, 15px, 0); } }
+        
+        /* --- Nav & Header --- */
+        header { 
+            background:rgba(10,10,31,0.95); border-bottom:3px solid var(--neon); padding:15px 40px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 0 30px rgba(0,255,255,0.4); z-index: 1000; 
+            transition: all 0.8s ease;
+        }
+        nav { display:flex; gap:20px; align-items: center; position: relative; }
+        .nav-btn {
+            background:transparent; border:1px solid var(--neon); color:var(--neon); padding:10px 25px; cursor:pointer; font-size:18px; font-weight:bold; border-radius:4px; transition:all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 0 0 10px rgba(0,255,255,0.2);
+        }
+        .nav-btn:hover, .nav-btn.active { background:var(--neon); color:#000; box-shadow:0 0 20px var(--neon); }
+        .nav-btn.btn-hidden { opacity: 0; transform: translateX(40px); pointer-events: none; margin-right: -120px; }
+        #special-btn, #portal-btn { display: none; opacity: 0; transform: translateX(-20px); transition: all 0.5s ease; }
+        #special-btn.btn-show, #portal-btn.btn-show { display: block; opacity: 1; transform: translateX(0); }
+        
+        main { flex:1; position:relative; background:#000; }
+        .tab-content { position:absolute; width:100%; height:100%; display:none; border:none; }
+        .tab-content.active { display:block; }
+        iframe { width:100%; height:100%; border:none; }
+        #crt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; opacity: var(--crt-opacity); transition: opacity 0.5s; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; }
+    </style>
+</head>
+<body>
+    <div id="crt-overlay"></div>
+    <header>
+        <a href="javascript:location.reload();" class="logo-link">
+            <img src="logo.png" alt="Logo" class="logo-img">
+            <div class="logo" data-text="MUSICAN">音能</div>
+        </a>
+        <nav>
+            <button class="nav-btn active" data-tab="tab1" id="nav-v">視覺化器</button>
+            <button class="nav-btn" data-tab="tab2" id="nav-l">音樂庫</button>
+            <button class="nav-btn" data-tab="tab-spec" id="special-btn" style="color:#ff00ff; border-color:#ff00ff;">未知領域</button>
+            <button class="nav-btn" data-tab="tab-portal" id="portal-btn" style="color:#00ff00; border-color:#00ff00;">特殊入口</button>
+            <button class="nav-btn" data-tab="tab3" id="nav-s">系統設定</button>
+        </nav>
+    </header>
+
+    <main>
+        <div id="tab1" class="tab-content active"><iframe src="visualizer.html"></iframe></div>
+        <div id="tab2" class="tab-content"><iframe src="library.html"></iframe></div>
+        <div id="tab3" class="tab-content"><iframe src="settings.html"></iframe></div>
+        <div id="tab-spec" class="tab-content"><iframe src="special.html"></iframe></div>
+        <div id="tab-portal" class="tab-content"><iframe id="portal-frame" src="file:///C:/Users/herob/LS/MusiCan/AL.html"></iframe></div>
+    </main>
+
+    <script>
+        const PORTAL_URL = "file:///C:/Users/herob/LS/MusiCan/AL.html";
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const targetTab = document.getElementById(tabId);
+            if(targetTab) targetTab.classList.add('active');
+            const targetBtn = document.querySelector(`[data-tab="${tabId}"]`);
+            if(targetBtn) targetBtn.classList.add('active');
+        }
+
+        // 核心動畫控制邏輯
+        function runNavAnimation(settings) {
+            const btnV = document.getElementById('nav-v');
+            const btnL = document.getElementById('nav-l');
+            const btnSpec = document.getElementById('special-btn');
+            const btnPortal = document.getElementById('portal-btn');
+
+            if (settings.specialMode || settings.portalMode) {
+                btnV.classList.add('btn-hidden');
+                btnL.classList.add('btn-hidden');
+                if (settings.specialMode) {
+                    btnSpec.style.display = 'block';
+                    setTimeout(() => btnSpec.classList.add('btn-show'), 10);
+                } else {
+                    btnSpec.classList.remove('btn-show');
+                    setTimeout(() => btnSpec.style.display = 'none', 500);
+                }
+                if (settings.portalMode) {
+                    btnPortal.style.display = 'block';
+                    setTimeout(() => btnPortal.classList.add('btn-show'), 10);
+                    handlePortalOpening(); // 💡 觸發自動跳轉偵測
+                } else {
+                    btnPortal.classList.remove('btn-show');
+                    setTimeout(() => btnPortal.style.display = 'none', 500);
+                }
+            } else {
+                btnV.classList.remove('btn-hidden');
+                btnL.classList.remove('btn-hidden');
+                btnSpec.classList.remove('btn-show');
+                btnPortal.classList.remove('btn-show');
+                setTimeout(() => { btnSpec.style.display = 'none'; btnPortal.style.display = 'none'; }, 500);
+            }
+        }
+
+        // 💡 核心偵測功能：當偵測到拒絕連線網址，自動開啟新分頁
+        function handlePortalOpening() {
+            switchTab('tab-portal');
+            // 偵測網址是否為 hanime1.me 或其他會拒絕訪問的站點
+            if (PORTAL_URL.includes("hanime1.me")) {
+                setTimeout(() => {
+                    const check = window.open(PORTAL_URL, "_blank");
+                    if (!check) alert("請允許彈出視窗以開啟特殊入口！");
+                }, 1000);
+            }
+			if (PORTAL_URL.includes("www.youtube.com")) {
+				setTimeout(() => {
+					const check = window.open(PORTAL_URL, "_blank");
+					if (!check) alert("請允許彈出視窗以開啟特殊入口！");
+				}, 1000);
+			}
+        }
+
+        function broadcastToIframes(data) {
+            document.querySelectorAll('iframe').forEach(f => {
+                try { f.contentWindow.postMessage(data, '*'); } catch(e) {}
+            });
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.data.themeColor) {
+                document.documentElement.style.setProperty('--neon', e.data.themeColor);
+                broadcastToIframes({ themeColor: e.data.themeColor });
+            }
+            if (e.data.crtEnabled !== undefined) {
+                document.documentElement.style.setProperty('--crt-opacity', e.data.crtEnabled ? '1' : '0');
+            }
+            if (e.data.specialMode !== undefined || e.data.portalMode !== undefined) {
+                runNavAnimation(e.data);
+            }
+            if (e.data.action === 'playSong') {
+                document.querySelector('#tab1 iframe').src = `visualizer.html?song=${encodeURIComponent(e.data.url)}&name=${encodeURIComponent(e.data.name)}`;
+                switchTab('tab1');
+            }
+        });
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if(btn.dataset.tab === 'tab-portal') handlePortalOpening();
+                else switchTab(btn.dataset.tab);
+            });
+        });
+
+        window.onload = () => {
+            const saved = localStorage.getItem('audioVisualizerSettings');
+            if (saved) {
+                const s = JSON.parse(saved);
+                if (s.themeColor) document.documentElement.style.setProperty('--neon', s.themeColor);
+                if (s.crtEnabled) document.documentElement.style.setProperty('--crt-opacity', '1');
+                runNavAnimation(s);
+            }
+        };
+    </script>
+</body>
+</html>

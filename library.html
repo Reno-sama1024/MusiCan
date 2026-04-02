@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音樂庫 - 音能</title>
+    <style>
+        :root { --neon: #00ffff; }
+        body { 
+            background: #0a0018; 
+            color: #fff; 
+            padding: 40px; 
+            font-family: "Microsoft JhengHei", sans-serif;
+            font-size: 22px; 
+            min-height: 100vh;
+            margin: 0;
+            overflow-y: auto; 
+        }
+        h1 { color: var(--neon); margin-bottom: 30px; text-shadow: 0 0 10px var(--neon); }
+        
+        .song-list { display: flex; flex-direction: column; gap: 12px; }
+        .song-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px 24px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        .song-item:hover { 
+            background: rgba(0, 255, 255, 0.1); 
+            border-color: var(--neon);
+            transform: translateX(5px);
+        }
+        .song-info { flex-grow: 1; }
+        .song-name { font-size: 24px; margin-bottom: 4px; }
+        .song-duration { font-size: 18px; color: #888; }
+        
+        .delete-btn { 
+            color: #ff6666; 
+            font-size: 26px; 
+            padding: 10px;
+            cursor: pointer; 
+            transition: transform 0.2s;
+        }
+        .delete-btn:hover { transform: scale(1.2); color: #ff0000; }
+
+        .drop-area {
+            margin-top: 40px;
+            padding: 60px;
+            border: 4px dashed var(--neon);
+            border-radius: 20px;
+            text-align: center;
+            color: var(--neon);
+            font-size: 26px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .drop-area:hover { background: rgba(0, 255, 255, 0.05); }
+        
+        .btn-clear {
+            background: #ff6666;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .btn-clear:hover { background: #ff0000; }
+    </style>
+</head>
+<body>
+    <h1>🎵 音樂庫</h1>
+    <button class="btn-clear" onclick="clearAll()">全部刪除</button>
+    
+    <div class="song-list" id="songList">
+        </div>
+
+    <div class="drop-area" id="dropArea">
+        拖拽音樂檔案到這裡<br>
+        <small style="font-size: 18px;">或點擊上傳 (MP3 / WAV)</small>
+    </div>
+
+    <script>
+        // --- 1. 資料庫初始化 (IndexedDB) ---
+        let db;
+        const request = indexedDB.open("MusicDB", 1);
+
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains("songs")) {
+                db.createObjectStore("songs", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            renderLibrary(); // 資料庫準備好後顯示列表
+        };
+
+        // --- 2. 工具函數：格式化時間 ---
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        // --- 3. 核心功能：渲染列表 ---
+        function renderLibrary() {
+            const list = document.getElementById('songList');
+            list.innerHTML = '';
+
+            const transaction = db.transaction(["songs"], "readonly");
+            const store = transaction.objectStore("songs");
+
+            store.openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const music = cursor.value;
+                    const item = document.createElement('div');
+                    item.className = 'song-item';
+                    item.innerHTML = `
+                        <div class="song-info" onclick="playSong('${music.name}', '${music.data}')">
+                            <div class="song-name">${music.name}</div>
+                            <div class="song-duration">${music.duration}</div>
+                        </div>
+                        <span class="delete-btn" onclick="deleteSong(${music.id})">🗑</span>
+                    `;
+                    list.appendChild(item);
+                    cursor.continue();
+                }
+            };
+        }
+
+        // --- 4. 核心功能：處理檔案上傳 ---
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('audio/')) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileData = e.target.result;
+                    const audio = new Audio(fileData);
+                    
+                    audio.onloadedmetadata = () => {
+                        const transaction = db.transaction(["songs"], "readwrite");
+                        const store = transaction.objectStore("songs");
+                        
+                        store.add({
+                            name: file.name.replace(/\.[^/.]+$/, ""),
+                            data: fileData,
+                            duration: formatTime(audio.duration)
+                        });
+                        
+                        transaction.oncomplete = () => renderLibrary();
+                    };
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- 5. 播放與刪除邏輯 ---
+        function playSong(name, url) {
+            // 向父視窗發送訊息（如果你有主播放器的話）
+            parent.postMessage({
+                action: 'playSong',
+                url: url,
+                name: name
+            }, '*');
+        }
+
+        function deleteSong(id) {
+            const transaction = db.transaction(["songs"], "readwrite");
+            transaction.objectStore("songs").delete(id);
+            transaction.oncomplete = () => renderLibrary();
+        }
+
+        function clearAll() {
+            if (confirm('確定刪除全部音樂？這將清空您的瀏覽器儲存空間。')) {
+                const transaction = db.transaction(["songs"], "readwrite");
+                transaction.objectStore("songs").clear();
+                transaction.oncomplete = () => renderLibrary();
+            }
+        }
+
+        // --- 6. 事件監聽 (拖拽與點擊) ---
+        const dropArea = document.getElementById('dropArea');
+        
+        dropArea.addEventListener('dragover', e => { 
+            e.preventDefault(); 
+            dropArea.style.background = 'rgba(0,255,255,0.1)'; 
+        });
+
+        dropArea.addEventListener('dragleave', () => { 
+            dropArea.style.background = ''; 
+        });
+
+        dropArea.addEventListener('drop', e => { 
+            e.preventDefault(); 
+            dropArea.style.background = ''; 
+            handleFiles(e.dataTransfer.files); 
+        });
+
+        dropArea.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.multiple = true;
+            input.onchange = e => handleFiles(e.target.files);
+            input.click();
+        });
+
+        // 接收來自外部的主題顏色更換
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.themeColor) {
+                document.documentElement.style.setProperty('--neon', e.data.themeColor);
+            }
+        });
+    </script>
+</body>
+</html>

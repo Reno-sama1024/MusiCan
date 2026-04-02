@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>AL | ADMIN_LIST</title>
+    <style>
+        :root { --neon: #00ffff; --neon-rgb: 0, 255, 255; transition: 0.8s; }
+        * { margin:0; padding:0; box-sizing:border-box; overflow:hidden; user-select: none; }
+        body { 
+            background: radial-gradient(circle at center, #0a0a25 0%, #050510 100%); 
+            color: #fff; font-family: 'Segoe UI', 'Courier New', monospace; 
+            height: 100vh; display: flex; flex-direction: column;
+        }
+
+        /* 背景裝飾：掃描線 */
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 10;
+        }
+
+        header { padding: 40px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 20; }
+        .sys-info { font-size: 14px; color: var(--neon); text-shadow: 0 0 5px var(--neon); line-height: 1.5; }
+        
+        .back-btn { 
+            padding: 10px 20px; border: 1px solid var(--neon); color: var(--neon); 
+            cursor: pointer; transition: 0.3s; font-size: 12px; letter-spacing: 2px;
+        }
+        .back-btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 20px var(--neon); }
+
+        .container { flex: 1; display: flex; justify-content: center; align-items: center; gap: 50px; padding: 20px; z-index: 20; }
+
+        .project-card {
+            width: 300px; height: 400px; background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(var(--neon-rgb), 0.3); border-top: 5px solid var(--neon);
+            position: relative; cursor: pointer; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 30px;
+        }
+        .project-card::before { content: "FILE_ID: 0x" + attr(data-id); position: absolute; top: -25px; left: 0; font-size: 10px; color: var(--neon); opacity: 0.7; }
+        .project-card:hover { transform: translateY(-20px) scale(1.05); background: rgba(var(--neon-rgb), 0.05); border-color: var(--neon); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.2); }
+
+        /* 執行中狀態樣式 */
+        .project-card.active-status { border-color: #fff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
+        .project-card.active-status .pj-title { color: #fff; text-shadow: 0 0 10px #fff; }
+        .project-card.active-status .pj-action { color: #00ff00; border-color: #00ff00; opacity: 1; }
+
+        .pj-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; letter-spacing: 2px; color: var(--neon); transition: 0.3s; }
+        .pj-tag { font-size: 10px; background: rgba(var(--neon-rgb), 0.2); padding: 3px 8px; align-self: flex-start; margin-bottom: 20px; }
+        .pj-desc { font-size: 13px; color: #aaa; line-height: 1.6; flex: 1; }
+        .pj-action { margin-top: 20px; font-size: 12px; border-bottom: 1px solid var(--neon); padding-bottom: 5px; align-self: flex-start; opacity: 0.5; transition: 0.3s; }
+        .project-card:hover .pj-action { opacity: 1; padding-left: 10px; }
+
+        footer { padding: 20px 40px; font-size: 10px; color: rgba(255,255,255,0.3); display: flex; justify-content: space-between; z-index: 20; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="sys-info" id="typewriter"></div>
+    <div class="back-btn" id="final-back-btn">RETURN_SYSTEM</div>
+</header>
+
+<div class="container">
+    <div class="project-card" id="musican-card" data-id="8821">
+        <div class="pj-title">MusiCan</div>
+        <div class="pj-tag">AUDIO_ENGINE</div>
+        <div class="pj-desc">工業風/哥德風音樂實驗室。支援動態歌詞渲染與音頻視覺化，專為高品質音源設計。</div>
+        <div class="pj-action" id="m-status">LAUNCH_MODULE ></div>
+    </div>
+
+    <div class="project-card" data-id="9904" onclick="location.href='V1DE0_+EcHN0.html'">
+        <div class="pj-title">V1DE0_+EcHN0</div>
+        <div class="pj-tag">VIDEO_CORE</div>
+        <div class="pj-desc">無審核本地影院。利用 IndexedDB 技術實現檔案永續存儲，具備霓虹自適應介面。</div>
+        <div class="pj-action">ACTIVE_STATUS: ONLINE</div>
+    </div>
+</div>
+
+<footer>
+    <div>STATION: DESKTOP-MAIN-V3</div>
+    <div>USER: ADMIN_CHEN</div>
+</footer>
+
+<script>
+    const text = ">> ACCESSING ADMIN_DATABASE...\n>> IDENTITY VERIFIED: TOP_CLASS_DEVELOPER\n>> STATUS: ALL MODULES READY.";
+    let i = 0;
+    function type() {
+        if (i < text.length) {
+            document.getElementById("typewriter").innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+            i++;
+            setTimeout(type, 30);
+        }
+    }
+
+    window.onload = () => {
+        type();
+        
+		const text = ">> ACCESSING ADMIN_DATABASE...\n>> IDENTITY VERIFIED: TOP_CLASS_DEVELOPER\n>> STATUS: ALL MODULES READY.";
+		
+        // 1. 顏色主題
+        const savedTheme = localStorage.getItem('V1DE0_Theme') || '#00ffff';
+        document.documentElement.style.setProperty('--neon', savedTheme);
+        const rgb = hexToRgb(savedTheme);
+        document.documentElement.style.setProperty('--neon-rgb', `${rgb.r},${rgb.g},${rgb.b}`);
+
+        // 2. 核心邏輯：判斷是否在音能環境中
+        const urlParams = new URLSearchParams(window.location.search);
+        // 如果網址有標記，我們就把「音能模式」存入 session (分頁關閉前有效)
+        if (urlParams.get('from') === 'MusiCan') {
+            sessionStorage.setItem('Env_Mode', 'MusiCan');
+        }
+
+        const isMusiCanEnv = sessionStorage.getItem('Env_Mode') === 'MusiCan' || (window.parent && window.parent !== window);
+        const mCard = document.getElementById('musican-card');
+        const mStatus = document.getElementById('m-status');
+        const backBtn = document.getElementById('final-back-btn');
+
+        if (isMusiCanEnv) {
+            // 在音能內：顯示「執行中」，點擊觸發「返回」
+            mCard.classList.add('active-status');
+            mStatus.innerText = 'SYSTEM_ACTIVE: BACK_TO_HOME';
+            
+            const handleBack = () => {
+                if (window.parent && typeof window.parent.closeAL === 'function') {
+                    window.parent.closeAL();
+                } else {
+                    // 如果沒有 closeAL，就嘗試跳回音能主頁
+                    location.href = 'MusiCan.html';
+                }
+            };
+            
+            mCard.onclick = handleBack;
+            backBtn.onclick = handleBack;
+        } else {
+            // 獨立開啟：顯示「啟動」
+            mCard.onclick = () => { location.href = 'MusiCan.html'; };
+            backBtn.onclick = () => { location.href = 'V1DE0_+EcHN0.html'; };
+        }
+    };
+
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 255, b: 255 };
+    }
+</script>
+</body>
+</html>

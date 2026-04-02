@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>視覺化器</title>
+    <style>
+        :root { --neon: #00ffff; --bg-dark: #0a0018; }
+        body,html{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg-dark);font-family: "Microsoft JhengHei", sans-serif;}
+        canvas{width:100vw; height:100vh; display: block;}
+        
+        .song-name{position:absolute;top:100px;left:80px;color:var(--neon);font-size:70px;font-weight:bold;text-shadow:0 0 30px var(--neon);z-index:10;pointer-events:none;}
+        
+        /* 進度條：頂部 90% */
+        .progress-container{
+            position:absolute; top:40px; left:5%; width:90%; height:8px; 
+            background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; z-index:10; display:none;
+        }
+        .progress-bar{height:100%; background:var(--neon); width:0%; box-shadow:0 0 15px var(--neon);}
+        
+        .time-display{
+            position:absolute; top:55px; left:5%; width:90%; 
+            color:var(--neon); font-size:18px; font-family: monospace;
+            display:flex; justify-content:space-between; z-index:10; display:none;
+        }
+
+        #startOverlay {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,0,24,0.9);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);}
+        .dropzone {position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 50px 100px; border: 4px dashed var(--neon); border-radius: 20px; background: rgba(5, 5, 40, 0.85); color: var(--neon); text-align: center; font-size: 26px; z-index: 5; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div id="startOverlay">
+        <div style="font-size:150px; color:var(--neon); text-shadow:0 0 50px var(--neon);">▶</div>
+        <div style="color:var(--neon); font-size:24px; margin-top:20px; font-weight:bold;">啟動系統 - Cyber Glitch 模式</div>
+    </div>
+    
+    <div class="song-name" id="songName">WAITING...</div>
+    <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="time-display" id="timeDisplay"><span id="currentTime">0:00</span><span id="totalTime">0:00</span></div>
+    
+    <div class="dropzone" id="dropzone">DRAG AUDIO HERE</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const songNameDisplay = document.getElementById('songName');
+        const overlay = document.getElementById('startOverlay');
+        const progressBar = document.getElementById('progressBar');
+        const dropzone = document.getElementById('dropzone');
+        
+        canvas.width = 1920; canvas.height = 1080;
+
+        let audioContext, analyser, source, audioElement;
+        let animationFrame;
+        let bassImpact = 0; 
+
+        const barCount = 70;
+        const peaks = new Array(barCount).fill(0);
+        const peakHold = new Array(barCount).fill(0);
+
+        function draw() {
+            animationFrame = requestAnimationFrame(draw);
+            if (!analyser) return;
+
+            const timeData = new Uint8Array(analyser.frequencyBinCount);
+            const freqData = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteTimeDomainData(timeData);
+            analyser.getByteFrequencyData(freqData);
+
+            let bassSum = 0; for(let i=0; i<10; i++) bassSum += freqData[i];
+            let currentBass = bassSum / 10;
+            if (currentBass > 212) bassImpact = 1.0; else bassImpact *= 0.86;
+
+            ctx.fillStyle = "#0a0018"; ctx.fillRect(0, 0, 1920, 1080);
+            
+            // --- 🏆 🏆 🏆 背景 Glitch 特效還原 ---
+            if (bassImpact > 0.5 && Math.random() > 0.8) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.85)"; // 隨機掃描線雜訊
+                for(let i=0; i<3; i++) {
+                    ctx.fillRect(0, Math.random()*1080, 1920, Math.random()*20);
+                }
+            }
+
+            const neonColor = getComputedStyle(document.documentElement).getPropertyValue('--neon').trim() || "#00ffff";
+
+            // --- RGB Glitch (0.85 透明度與 RGB Split) ---
+            if (bassImpact > 0.5) {
+                ctx.globalAlpha = 0.85;
+                ctx.globalCompositeOperation = "screen";
+                // 紅色偏移層
+                renderFrame(timeData, freqData, "rgba(255, 0, 0, 0.85)", (Math.random()-0.5) * 50 * bassImpact);
+                // 青色偏移層 (Blue/Cyan Split)
+                renderFrame(timeData, freqData, "rgba(0, 85, 255, 0.85)", (Math.random()-0.5) * -50 * bassImpact);
+                ctx.globalAlpha = 1.0;
+                ctx.globalCompositeOperation = "source-over";
+            }
+            renderFrame(timeData, freqData, neonColor, 0);
+
+            // --- 🏆 🏆 🏆 螢幕隨機撕裂 Glitch ---
+            if (bassImpact > 0.85 && Math.random() > 0.85) {
+                for(let i=0; i<2; i++) {
+                    let sy = Math.random() * 1080; let sh = Math.random() * 60 + 20; let sx = (Math.random()-0.5) * 120;
+                    ctx.drawImage(canvas, 0, sy, 1920, sh, sx, sy, 1920, sh);
+                }
+            }
+        }
+
+        function renderFrame(timeData, freqData, color, offset) {
+            // --- 原始霸氣示波器邏輯 ( centerY=600 ) ---
+            const centerY_osc = 600;
+            const amp = 140;
+            const sliceWidth = timeData.length / 3;
+            ctx.lineWidth = 5;
+            
+            const colors = offset === 0 ? ['#ff6666', '#66ff99', '#66aaff'] : [color, color, color];
+            
+            for(let j=0; j<3; j++) {
+                ctx.beginPath();
+                ctx.strokeStyle = colors[j];
+                ctx.shadowBlur = (offset === 0) ? 20 : 0;
+                ctx.shadowColor = colors[j];
+                
+                let start = Math.floor(j * sliceWidth);
+                let end = Math.floor((j + 1) * sliceWidth);
+                
+                for(let i=start; i<end; i++) {
+                    const x = ((i - start) / sliceWidth) * 1920 + offset;
+                    // 還原原始代碼公式，霸氣振幅喵！
+                    const v = timeData[i] / 128.0;
+                    const y = v * amp + centerY_osc - amp; 
+                    
+                    if(i === start) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // --- 底部長條圖 (與視窗同寬) ---
+            const panelY = 1080;
+            const bWidth = 12; const bGap = 15;
+            const totalW = (bWidth + bGap) * barCount;
+            const startX = (1920 - totalW) / 2 + offset;
+
+            if (offset !== 0) {
+                ctx.shadowOffsetX = (Math.random()-0.5) * 25 * bassImpact;
+                ctx.shadowOffsetY = (Math.random()-0.5) * 25 * bassImpact;
+                ctx.shadowBlur = 20; ctx.shadowColor = color;
+            }
+
+            for (let i = 0; i < barCount; i++) {
+                const sIdx = Math.floor(i * (freqData.length * 0.6 / barCount));
+                let val = Math.pow(freqData[sIdx]/255, 1.1) * 350; 
+                if (val > peaks[i]) peaks[i] = val; else peaks[i] *= 0.94;
+
+                ctx.fillStyle = color;
+                ctx.fillRect(startX + i*(bWidth+bGap), panelY - val, bWidth, val);
+                
+                if (offset === 0) {
+                    ctx.fillStyle = color + "88";
+                    ctx.fillRect(startX + i*(bWidth+bGap), panelY - peaks[i] - 12, bWidth, 4);
+                }
+            }
+            ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; ctx.shadowBlur = 0;
+        }
+
+        // --- 系統邏輯 (恢復正常喵) ---
+        function handlePlaybackStart() {
+            overlay.style.display = 'flex';
+            overlay.onclick = () => {
+                overlay.style.display = 'none';
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') audioContext.resume();
+                document.documentElement.requestFullscreen().catch(() => {});
+                startPlayback();
+            };
+        }
+
+        function startPlayback() {
+            if (source) source.disconnect();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            analyser.smoothingTimeConstant = 0.82;
+            source = audioContext.createMediaElementSource(audioElement);
+            source.connect(analyser); analyser.connect(audioContext.destination);
+            document.getElementById('dropzone').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('timeDisplay').style.display = 'flex';
+            audioElement.play(); draw();
+            audioElement.onended = () => { if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); parent.postMessage({ action: 'songEnded' }, '*'); };
+        }
+
+        function loadAudio(file) {
+            if (audioElement) { audioElement.pause(); audioElement.src = ""; }
+            audioElement = new Audio(URL.createObjectURL(file));
+            songNameDisplay.textContent = file.name.replace(/\.[^/.]+$/, "").toUpperCase();
+            handlePlaybackStart();
+        }
+
+        function loadAudioFromUrl(url, name) {
+            if (audioElement) { audioElement.pause(); audioElement.src = ""; }
+            audioElement = new Audio(url);
+            audioElement.crossOrigin = "anonymous";
+            songNameDisplay.textContent = name.toUpperCase();
+            handlePlaybackStart();
+        }
+
+        dropzone.onclick = () => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'audio/*'; input.onchange = e => e.target.files[0] && loadAudio(e.target.files[0]); input.click(); };
+        dropzone.ondragover = e => { e.preventDefault(); dropzone.style.borderColor = "#fff"; };
+        dropzone.ondrop = e => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file && file.type.startsWith('audio/')) loadAudio(file); };
+
+        function updateProgress() {
+			if (audioElement) {
+				if (!audioElement.paused) {
+					const p = (audioElement.currentTime / audioElement.duration) * 100;
+					progressBar.style.width = p + "%";
+					document.getElementById('currentTime').textContent = format(audioElement.currentTime);
+					document.getElementById('totalTime').textContent = format(audioElement.duration);
+				}
+				if (audioElement.currentTime >= audioElement.duration && audioElement.duration > 0) {
+					window.top.location.href = 'MusiCan.html';
+					return;
+				}
+			}
+			requestAnimationFrame(updateProgress);
+		}
+        function format(s) {
+			if (isNaN(s)) return "0:00"; const m = Math.floor(s/60), sec = Math.floor(s%60); return m + ":" + (sec<10?"0":"") + sec; }
+        window.onload = () => { updateProgress(); const params = new URLSearchParams(window.location.search); if (params.get('song')) loadAudioFromUrl(decodeURIComponent(params.get('song')), decodeURIComponent(params.get('name') || 'UNKNOWN')); const saved = localStorage.getItem('audioVisualizerSettings'); if (saved && JSON.parse(saved).themeColor) document.documentElement.style.setProperty('--neon', JSON.parse(saved).themeColor); };
+        window.addEventListener('message', (e) => {
+			if (e.data && e.data.themeColor) document.documentElement.style.setProperty('--neon', e.data.themeColor);
+			if (e.data.action === 'switchTab') {
+				switchTab(e.data.tab);
+			};
+		});
+    </script>
+</body>
+</html>

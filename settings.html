@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>設定 - 音能</title>
+    <style>
+        :root { --neon: #00ffff; }
+        body {
+            background: #0a0018; color: #fff;
+            padding: 40px; font-size: 24px;
+            font-family: sans-serif;
+            transition: background 0.5s ease;
+        }
+        h1 { color: var(--neon); text-shadow: 0 0 15px var(--neon); transition: color 0.8s ease, text-shadow 0.8s ease; }
+        .setting-item { margin-bottom: 30px; }
+        label { cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        input[type="checkbox"] { width: 25px; height: 25px; }
+        .color-group { display: flex; gap: 15px; margin-top: 10px; }
+        .color-btn { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+        .color-btn.active { border-color: #fff; box-shadow: 0 0 15px #fff; }
+        input[type="range"] { width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>系統設定</h1>
+    
+    <div class="setting-item">
+        <label><input type="checkbox" id="autoFullscreen"> 自動全螢幕</label>
+    </div>
+    <div class="setting-item">
+        <label><input type="checkbox" id="strongGlitch"> 強力故障特效 (Glitch)</label>
+    </div>
+    <div class="setting-item">
+        <label><input type="checkbox" id="waveGlow"> 波形發光</label>
+    </div>
+    <div class="setting-item">
+        <label><input type="checkbox" id="crtEffect"> 開啟 CRT 掃描線模式 (全域)</label>
+    </div>
+    <div class="setting-item">
+        <label style="color: #ff00ff;"><input type="checkbox" id="specialMode"> 啟用 [ 未知領域 ] 擴充模組</label>
+    </div>
+    
+    <div class="setting-item">
+        <label style="color: #00ff00;"><input type="checkbox" id="portalMode"> 啟用 [ 特殊入口 ]</label>
+    </div>
+
+    <div class="setting-item">
+        <p>反應靈敏度: <span id="sensValue">5</span></p>
+        <input type="range" id="sensitivity" min="1" max="10" value="5">
+    </div>
+
+    <div class="setting-item">
+        <p>主題顏色</p>
+        <div class="color-group">
+            <div class="color-btn active" style="background:#00ffff;" data-color="#00ffff"></div>
+            <div class="color-btn" style="background:#ff00ff;" data-color="#ff00ff"></div>
+            <div class="color-btn" style="background:#ffff00;" data-color="#ffff00"></div>
+            <div class="color-btn" style="background:#00ff00;" data-color="#00ff00"></div>
+            <div class="color-btn" style="background:#ff4400;" data-color="#ff4400"></div>
+        </div>
+    </div>
+
+    <script>
+        function saveSettings() {
+            const activeColorBtn = document.querySelector('.color-btn.active');
+            const settings = {
+                autoFullscreen: document.getElementById('autoFullscreen').checked,
+                strongGlitch: document.getElementById('strongGlitch').checked,
+                waveGlow: document.getElementById('waveGlow').checked,
+                crtEnabled: document.getElementById('crtEffect').checked,
+                specialMode: document.getElementById('specialMode').checked,
+                portalMode: document.getElementById('portalMode').checked,
+                sensitivity: document.getElementById('sensitivity').value,
+                themeColor: activeColorBtn ? activeColorBtn.dataset.color : '#00ffff'
+            };
+            localStorage.setItem('audioVisualizerSettings', JSON.stringify(settings));
+            parent.postMessage(settings, '*');
+            document.documentElement.style.setProperty('--neon', settings.themeColor);
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('audioVisualizerSettings');
+            if (saved) {
+                const s = JSON.parse(saved);
+                document.getElementById('autoFullscreen').checked = s.autoFullscreen || false;
+                document.getElementById('strongGlitch').checked = s.strongGlitch || false;
+                document.getElementById('waveGlow').checked = s.waveGlow || false;
+                document.getElementById('crtEffect').checked = s.crtEnabled || false;
+                document.getElementById('specialMode').checked = s.specialMode || false;
+                document.getElementById('portalMode').checked = s.portalMode || false;
+                document.getElementById('sensitivity').value = s.sensitivity || 5;
+                document.getElementById('sensValue').textContent = s.sensitivity || 5;
+                if (s.themeColor) document.documentElement.style.setProperty('--neon', s.themeColor);
+            }
+        }
+
+        const inputs = ['autoFullscreen', 'strongGlitch', 'waveGlow', 'crtEffect', 'specialMode', 'portalMode'];
+        inputs.forEach(id => document.getElementById(id).addEventListener('change', saveSettings));
+        
+        document.getElementById('sensitivity').addEventListener('input', (e) => {
+            document.getElementById('sensValue').textContent = e.target.value;
+            saveSettings();
+        });
+
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                saveSettings();
+            });
+        });
+
+        window.onload = loadSettings;
+    </script>
+</body>
+</html>
