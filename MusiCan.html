@@ -55,7 +55,7 @@
 								   justify-content:center; font-family:monospace; text-align:center;">
 		<h1 style="font-size:3rem; margin-bottom:20px;">[ ACCESS DENIED ]</h1>
 		<p style="font-size:1.2rem; letter-spacing:2px;">偵測到非法移動端設備。權限不足。</p>
-		<p style="color:#555; margin-top:10px;">請使用具備 WASD 標準輸入協定之運算終端開啟。</p>
+		<p style="color:#555; margin-top:10px;">請使用具備標準輸入協定運算終端開啟。</p>
 	</div>
 	
 	<div id="auth-approved" style="position:fixed; bottom:20px; left:20px; color:#0f0; font-family:monospace; font-size:12px; z-index:1000; display:none; text-shadow:0 0 5px #0f0;">
@@ -154,19 +154,6 @@
 		
         function handlePortalOpening() {
             switchTab('tab-portal');
-			
-            if (PORTAL_URL.includes("NeverGonnaGiveYouUp")) {
-                setTimeout(() => {
-                    const check = window.open(PORTAL_URL, "_blank");
-                    if (!check) alert("請允許彈出視窗以開啟特殊入口！");
-                }, 1000);
-            }
-			if (PORTAL_URL.includes("LetYouDown")) {
-				setTimeout(() => {
-					const check = window.open(PORTAL_URL, "_blank");
-					if (!check) alert("請允許彈出視窗以開啟特殊入口！");
-				}, 1000);
-			}
         }
 
         function broadcastToIframes(data) {
@@ -194,8 +181,11 @@
 
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                if(btn.dataset.tab === 'tab-portal') handlePortalOpening();
-                else switchTab(btn.dataset.tab);
+                if (btn.dataset.tab === 'tab-portal') {
+					handlePortalOpening();
+				} else {
+					switchTab(btn.dataset.tab);
+				}
             });
         });
 
