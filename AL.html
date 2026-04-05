@@ -69,7 +69,7 @@
         <div class="pj-action" id="m-status">LAUNCH_MODULE ></div>
     </div>
 
-    <div class="project-card" data-id="9904" onclick="location.href='V1DE0_+EcHN0.html'">
+    <div class="project-card" data-id="9904" onclick="openVideoPlayer()">
         <div class="pj-title">V1DE0_+EcHN0</div>
         <div class="pj-tag">VIDEO_CORE</div>
         <div class="pj-desc">無審核本地影院。利用 IndexedDB 技術實現檔案永續存儲，具備霓虹自適應介面。</div>
@@ -147,6 +147,11 @@
             b: parseInt(result[3], 16)
         } : { r: 0, g: 255, b: 255 };
     }
+
+	function openVideoPlayer() {
+		const playerUrl = "V1DE0_+EcHN0.html";
+		const newWin = window.open(playerUrl, "_blank");
+	}
 </script>
 </body>
 </html>
