@@ -69,7 +69,7 @@
         <div class="pj-action" id="m-status">LAUNCH_MODULE ></div>
     </div>
 
-    <div class="project-card" data-id="9904" onclick="openVideoPlayer()">
+    <div class="project-card" data-id="9904" id="video-card">
         <div class="pj-title">V1DE0_+EcHN0</div>
         <div class="pj-tag">VIDEO_CORE</div>
         <div class="pj-desc">無審核本地影院。利用 IndexedDB 技術實現檔案永續存儲，具備霓虹自適應介面。</div>
@@ -127,7 +127,7 @@
 			backBtn.onclick = () => { location.href = 'V1DE0_+EcHN0.html'; };
 		}
 
-		const vCard = document.querySelector('.project-card[data-id="9904"]');
+		const vCard = document.getElementById('video-card');
 		if (vCard) {
 			vCard.onclick = openVideoPlayer;
 		}
@@ -143,7 +143,7 @@
     }
 
 	function openVideoPlayer() {
-		const newWin = window.open("V1DE0_+EcHN0.html", "_blank");
+		const newWin = window.open("V1DE0_+EcHN0.html", "_blank", "width=1366,height=850,resizable=yes,scrollbars=no,status=no");
 	}
 </script>
 </body>
