@@ -84,14 +84,14 @@
 
 <script>
     const text = ">> ACCESSING ADMIN_DATABASE...\n>> IDENTITY VERIFIED: TOP_CLASS_DEVELOPER\n>> STATUS: ALL MODULES READY.";
-    let i = 0;
-    function type() {
-        if (i < text.length) {
-            document.getElementById("typewriter").innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
-            i++;
-            setTimeout(type, 30);
-        }
-    }
+	let i = 0;
+	function type() {
+		if (i < text.length) {
+			document.getElementById("typewriter").innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+			i++;
+			setTimeout(type, 30);
+		}
+	}
 
     window.onload = () => {
         type();
@@ -120,23 +120,17 @@
             // 在音能內：顯示「執行中」，點擊觸發「返回」
             mCard.classList.add('active-status');
             mStatus.innerText = 'SYSTEM_ACTIVE: BACK_TO_HOME';
-            
-            const handleBack = () => {
-                if (window.parent && typeof window.parent.closeAL === 'function') {
-                    window.parent.closeAL();
-                } else {
-                    // 如果沒有 closeAL，就嘗試跳回音能主頁
-                    location.href = 'MusiCan.html';
-                }
-            };
-            
-            mCard.onclick = handleBack;
-            backBtn.onclick = handleBack;
-        } else {
-            // 獨立開啟：顯示「啟動」
-            mCard.onclick = () => { location.href = 'MusiCan.html'; };
-            backBtn.onclick = () => { location.href = 'V1DE0_+EcHN0.html'; };
-        }
+			mCard.onclick = goBackToMusiCan;
+			backBtn.onclick = goBackToMusiCan;
+		} else {
+			mCard.onclick = () => { location.href = 'MusiCan.html'; };
+			backBtn.onclick = () => { location.href = 'V1DE0_+EcHN0.html'; };
+		}
+
+		const vCard = document.querySelector('.project-card[data-id="9904"]');
+		if (vCard) {
+			vCard.onclick = openVideoPlayer;
+		}
     };
 
     function hexToRgb(hex) {
@@ -149,13 +143,7 @@
     }
 
 	function openVideoPlayer() {
-		const playerUrl = "V1DE0_+EcHN0.html";
-		const newWin = window.open(playerUrl, "_blank");
-		if (!newWin) {
-			alert("請允許彈出視窗，才能開啟 V1DE0_+EcHN0 影片播放器！");
-		} else {
-			newWin.focus();
-		}
+		const newWin = window.open("V1DE0_+EcHN0.html", "_blank");
 	}
 </script>
 </body>
