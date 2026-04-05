@@ -151,6 +151,11 @@
 	function openVideoPlayer() {
 		const playerUrl = "V1DE0_+EcHN0.html";
 		const newWin = window.open(playerUrl, "_blank");
+		if (!newWin) {
+			alert("請允許彈出視窗，才能開啟 V1DE0_+EcHN0 影片播放器！");
+		} else {
+			newWin.focus();
+		}
 	}
 </script>
 </body>
